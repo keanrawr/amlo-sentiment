@@ -14,41 +14,46 @@ months <- tibble(
 
 # clean data -------------------------------------------------------------------
 
+# remove special characters form speakers
 treated <- raw %>% 
   separate(date, c("month", "day", "year"), convert = TRUE) %>% 
   left_join(months) %>% 
   mutate(date = make_date(year, m, day)) %>% 
   select(date, content, speaker) %>% 
-  mutate(content = str_remove(content, fixed(speaker)) )
-
-treated %>% 
+  mutate(content = str_remove(content, fixed(speaker)) ) %>% 
   mutate(speaker = str_extract(speaker, "([^,]+)"), 
          speaker = str_remove_all(speaker, "\\(([^\\)]+)\\)"),
          speaker = str_remove_all(speaker, "[.,\\/#!$%\\^&\\*;:{}=\\-_`~()]"), 
          speaker = str_remove_all(speaker, "\\d"),
          speaker = str_replace_all(speaker, "[^[:alnum:]]", " "),
-         speaker = str_trim(speaker)) %>% 
+         speaker = str_trim(speaker))
+
+# unify speaker names
+all_names <- treated %>% 
   distinct(speaker) %>% 
-  pull(speaker) -> all_names
+  pull(speaker)
 
-# similarity <- 
-crossing(names_1 = all_names, names_2 = all_names) %>% 
-  mutate(dist = stringdist(names_1, names_2, "jw")) %>% 
+similar_names <- combn(all_names, 2) %>%
+  t() %>% 
+  as_tibble() %>% 
+  rename(name_1 = V1, name_2 = V2) %>% 
+  mutate(dist = stringdist(name_1, name_2, "jw")) %>% 
   filter(dist < .2, dist > 0) %>% 
-  # head(1) %>% 
-  # as.data.frame()
-  filter(!names_1 %in% unique(names_2))
+  filter(!name_1 %in% name_2) %>% 
+  select(clean_name = name_1, speaker = name_2)
 
+treated <- treated %>% 
+  left_join(similar_names) %>% 
+  mutate(speaker = coalesce(clean_name, speaker), 
+         speaker = str_to_title(speaker)) %>% 
+  select(-clean_name)
 
-treated %>% 
-  filter(str_detect(speaker, "LUIS ANTONIO RAMÍREZ PINEDA")) %>% 
-  count(speaker, sort = TRUE)
+# remove special characters from content text
+treated <- treated %>% 
+  mutate(content = str_remove_all(content, "[.,\\/#!$%\\^&\\*;:{}=\\-_`~()]"), 
+         content = str_replace_all(content, "[^[:alnum:]]", " "),
+         content = str_trim(content), 
+         content = str_to_lower(content)) %>% 
+  rename(text = content)
 
-
-stringdist(
-  c("sadsadas", "asdfghj", "a"), 
-  c("sadassadg", "sdasertkm", "b"), 
-  "jw"
-)
-
-"GRACIELA MÁRQUEZ COLÍN"
+write_csv(treated, "data/conferences-treated.csv")

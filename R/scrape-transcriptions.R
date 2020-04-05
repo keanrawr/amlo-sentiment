@@ -16,7 +16,7 @@ extract_speaker <- function(text) {
 
 # extract conference links
 base_url <- "https://lopezobrador.org.mx/transcripciones/page/"
-pages <- 1:119
+pages <- 1:120
 
 links <- list()
 total <- length(pages)
