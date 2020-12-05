@@ -3,7 +3,7 @@ library(tidyverse)
 library(rvest)
 
 
-# auxiliar function ------------------------------------------------------------
+# auxiliary function -----------------------------------------------------------
 
 extract_speaker <- function(text) {
   preliminar <- str_extract(text, "^(.+:?):")
@@ -16,7 +16,7 @@ extract_speaker <- function(text) {
 
 # extract conference links
 base_url <- "https://lopezobrador.org.mx/transcripciones/page/"
-pages <- 1:120
+pages <- 1:165
 
 links <- list()
 total <- length(pages)
